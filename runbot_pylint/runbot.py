@@ -186,6 +186,7 @@ class runbot_build(models.Model):
             ).check(paths)
 
         if not reporter.messages:
+            build.result = 'ok'
             # all's well
             build._lint_state_to('success')
             return -2
@@ -201,6 +202,7 @@ class runbot_build(models.Model):
         failure_message = "Detected {} linting issues".format(len(reporter.messages))
         cr, uid, context = build._cr, build._uid, build._context
 
+        build.result = 'warn'
         Logging = self.pool['ir.logging']
         Logging.create(cr, uid, {
             'build_id': build.id,

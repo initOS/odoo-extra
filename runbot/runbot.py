@@ -596,8 +596,27 @@ class runbot_build(osv.osv):
             self.write(cr, uid, [duplicate_ids[0]], {'duplicate_id': build_id})
         self.write(cr, uid, [build_id], extra_info, context=context)
 
+    _result_transitions = {
+        '': {'ko', 'warn', 'ok', 'skipped', 'killed', ''},
+        'ko': {''},
+        'skipped': {''},
+        'killed': {''},
+        'warn': {'', 'ko'},
+        'ok': {'', 'warn', 'ko'},
+    }
+    def write(self, cr, uid, ids, values, context=None):
+        if 'result' in values:
+            if len(ids) != 1:
+                raise AssertionError("Can't set state on more than one build at a time")
+            build = self.browse(cr, uid, ids, context=context)
+            allowed = self._result_transitions[build.result]
+            # just ignore backwards transitions
+            if values['result'] not in allowed:
+                values.pop('result')
+        return super(runbot_build, self).write(cr, uid, ids, values, context=context)
+
     def reset(self, cr, uid, ids, context=None):
-        self.write(cr, uid, ids, { 'state' : 'pending' }, context=context)
+        self.write(cr, uid, ids, { 'state' : 'pending', 'result': '' }, context=context)
 
     def logger(self, cr, uid, ids, *l, **kw):
         l = list(l)
@@ -1102,7 +1121,8 @@ class runbot_build(osv.osv):
                 build._local_cleanup()
 
     def skip(self, cr, uid, ids, context=None):
-        self.write(cr, uid, ids, {'state': 'done', 'result': 'skipped'}, context=context)
+        for record in self.browse(cr, uid, ids, context=context):
+            record.write({'state': 'done', 'result': 'skipped'})
         to_unduplicate = self.search(cr, uid, [('id', 'in', ids), ('duplicate_id', '!=', False)])
         if len(to_unduplicate):
             self.force(cr, uid, to_unduplicate, context=context)
