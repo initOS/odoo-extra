@@ -1318,7 +1318,10 @@ class RunbotController(http.Controller):
                 ORDER BY bu.sequence DESC
                 """
                 sticky_dom = [('repo_id','=',repo.id), ('sticky', '=', True)]
-                sticky_branch_ids = [] if search else branch_obj.search(cr, uid, sticky_dom)
+                # Workaround for a crash that occurs when  old, sticky branches
+                # have no current commit
+                #sticky_branch_ids = [] if search else branch_obj.search(cr, uid, sticky_dom)
+                sticky_branch_ids = []
                 cr.execute(branch_query, (tuple(build_ids),))
                 branch_ids = uniq_list(sticky_branch_ids + [br[0] for br in cr.fetchall()])
 
