@@ -1615,7 +1615,8 @@ class RunbotController(http.Controller):
             if last_build.state != 'running':
                 url = "/runbot/build/%s?ask_rebuild=1" % last_build.id
             else:
-                url = build.branch_id._get_branch_quickconnect_url(last_build.domain, last_build.dest)[build.branch_id.id]
+                url = ("http://%s/login?db=%s-new&login=admin&key=admin%s" %
+                       (last_build.domain, last_build.dest, "&redirect=/web?debug=1" if not build.branch_id.branch_name.startswith('7.0') else ''))
         else:
             return request.not_found()
         return werkzeug.utils.redirect(url)
